@@ -88,7 +88,7 @@ export const logoutUser = (req: Request, res: Response) => {
 
 }
 
-const verifyUser = async(req:Request, res:Response) => {
+export const verifyUser = async(req:Request, res:Response) => {
     try {
         const {userId} = req.session;
 
