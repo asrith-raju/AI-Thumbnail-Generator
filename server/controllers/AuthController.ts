@@ -4,7 +4,7 @@ import bcrypt from 'bcrypt';
 
 // controller for user registration 
 
-export const register = async (req: Request, res: Response) => {
+export const registerUser = async (req: Request, res: Response) => {
     try {
         const { name,email,password } = req.body;
         //Find user by mail
@@ -97,7 +97,7 @@ const verifyUser = async(req:Request, res:Response) => {
             return res.status(404).json({message:"Invalid User"});
         }
         return res.json({user});
-        
+
     } catch (error:any) {
         console.log(error);
         res.status(500).json({ message: error.message });
