@@ -1,11 +1,12 @@
 import { Request, Response } from 'express';
 import Thumbnail from '../models/Thumbnail.js';
 import { GenerateContentConfig, HarmBlockThreshold, HarmCategory } from '@google/genai';
-import ai from '../configs/ai.js';
+// import ai from '../configs/ai.js';
 import path from 'path';
 import fs from 'fs';
 import {v2 as cloudinary} from 'cloudinary';
-
+import axios from "axios";
+import FormData from "form-data";
 
 const stylePrompts = {
   'Bold and Graphic': 'eye-catching thumbnail, bold typography, vibrant colors, expressive facial reaction, dramatic lighting, high contrast, click-worthy composition, professional design',
@@ -33,99 +34,110 @@ const colorSchemeDescriptions = {
 }
  
 
-export const generateThumbnail = async (req:Request, res:Response) => {
-     try {
-        const userId = req.session.userId;
-        const {title,prompt:user_prompt,style,aspect_ratio,color_scheme,text_overlay} = req.body;
-        const thumbnail = await Thumbnail.create({
-            userId,
-            title,
-            prompt_used:user_prompt,
-            style,
-            aspect_ratio,
-            color_scheme,
-            text_overlay ,
-            isGenerating:true
-        })
-         const model = 'gemini-3-pro-image-preview';
 
-         const generationconfig :GenerateContentConfig = {
-            maxOutputTokens:32768,
-            temperature:1,
-            topP:0.95,
-            responseModalities:['IMAGE'],
-            imageConfig:{
-                aspectRatio:'16:9',
-                imageSize:'1K'
+
+
+
+
+
+export const generateThumbnail = async (req: Request, res: Response) => {
+  try {
+    const userId = req.session.userId;
+    const {
+      title,
+      prompt: user_prompt,
+      style,
+      aspect_ratio,
+      color_scheme,
+      text_overlay
+    } = req.body;
+
+    if (!userId || !title) {
+      return res.json({ success: false, message: "Missing details" });
+    }
+
+    // Save initial DB record
+    const thumbnail = await Thumbnail.create({
+      userId,
+      title,
+      prompt_used: user_prompt,
+      style,
+      aspect_ratio,
+      color_scheme,
+      text_overlay,
+      isGenerating: true
+    });
+
+    // 🔹 Build prompt (same logic as before)
+    let prompt = `Create a ${stylePrompts[style as keyof typeof stylePrompts]} thumbnail for "${title}".`;
+
+    if (color_scheme) {
+      prompt += ` Use a ${colorSchemeDescriptions[color_scheme as keyof typeof colorSchemeDescriptions]} color scheme.`;
+    }
+
+    if (user_prompt) {
+      prompt += ` Additional details: ${user_prompt}.`;
+    }
+
+    prompt += " Make it bold, professional, and click-worthy.";
+
+    // 🔹 ClipDrop request
+    const formData = new FormData();
+    formData.append("prompt", prompt);
+
+    const { data } = await axios.post(
+      "https://clipdrop-api.co/text-to-image/v1",
+      formData,
+      {
+        headers: {
+          "x-api-key": process.env.CLIPDROP_API_KEY!,
+          ...formData.getHeaders()
         },
+        responseType: "arraybuffer"
+      }
+    );
 
-            safetySettings:[
-                {category:HarmCategory.HARM_CATEGORY_HATE_SPEECH,threshold:HarmBlockThreshold.OFF},
-                {category:HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,threshold:HarmBlockThreshold.OFF},
-                {category:HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,threshold:HarmBlockThreshold.OFF},
-                {category:HarmCategory.HARM_CATEGORY_HARASSMENT,threshold:HarmBlockThreshold.OFF}
+    // 🔹 Convert image
+    const imageBuffer = Buffer.from(data, "binary");
 
-            ]
-        
-     } 
-    
-     let prompt = `Create a ${stylePrompts[style as keyof typeof stylePrompts]} for: "${title}"`;
-     if(color_scheme){
-        prompt += ` Use a ${colorSchemeDescriptions[color_scheme as keyof typeof colorSchemeDescriptions]} color scheme.`;
-     }
+    // 🔹 Save locally (optional, for Cloudinary)
+    const filename = `thumbnail-${Date.now()}.png`;
+    const filePath = path.join("images", filename);
 
-     if(user_prompt){
-        prompt += ` Additional details: ${user_prompt}`;
-     }
+    fs.mkdirSync("images", { recursive: true });
+    fs.writeFileSync(filePath, imageBuffer);
 
+    // 🔹 Upload to Cloudinary
+    const uploadResult = await cloudinary.uploader.upload(filePath, {
+      resource_type: "image"
+    });
 
-        prompt += `The Thumbnail should  be ${aspect_ratio},visually stunning and designed to maximize click-through rate.make it bold, proffessional ,and impossible to ignore.`;
+    // 🔹 Update DB
+    thumbnail.image_url = uploadResult.secure_url;
+    thumbnail.isGenerating = false;
+    await thumbnail.save();
 
-        //generate image using Gemini API
-        const response:any = await ai.models.generateContent({
-            model,
-            contents : [prompt],
-            config : generationconfig
-        })
+    // 🔹 Cleanup
+    fs.unlinkSync(filePath);
 
-        if(!response?.candidates?.[0].content?.parts){
-             throw new Error('Image generation failed');
-        }
-        const parts = response.candidates[0].content.parts;
+    res.json({
+      success: true,
+      message: "Thumbnail generated successfully",
+      thumbnail
+    });
 
-        let finalBuffer:Buffer | null = null;
+  } catch (error: any) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Image generation failed"
+    });
+  }
+};
 
-        for(const part of parts){
-            if(part.inlineData){
-                finalBuffer = Buffer.from(part.inlineData,'base64');
-            }
-        }
-        const filename = `final-output-${Date.now()}.png`;
-        const filePath = path.join(`images`,filename);
-
-
-        fs.mkdirSync('images',{recursive:true})
-
-        fs.writeFileSync(filePath, finalBuffer!);
-
-        const uploadResult = await cloudinary.uploader.upload(filePath, {resource_type: "image"});
-
-        thumbnail.image_url = uploadResult.url;
-
-        thumbnail.isGenerating = false;
-
-        await thumbnail.save();
-
-        res.json({MessageChannel:"Thumbnail generated successfully",thumbnail});
-
-        fs.unlinkSync(filePath);
-     }catch(error:any){
-        console.log(error);
-        res.status(500).json({message:error.message});
-     }
-} 
 
 //controller to delete a thumbnail
+
 export const deleteThumbnail = async (req:Request, res:Response) => {
     try {
         const {id} = req.params;
