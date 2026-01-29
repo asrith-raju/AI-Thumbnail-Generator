@@ -19,7 +19,17 @@ const stylePrompts = {
 };
 
 
+const colorSchemeDescriptions = {
+   vibrant: 'vibrant and energetic colors, high saturation, bold contrasts, eye-catching palette',
+    sunset: 'warm sunset tones, orange pink and purple hues, soft gradients, cinematic glow',
+    forest: 'natural green tones, earthy colors, calm and organic palette, fresh atmosphere',
+    neon: 'neon glow effects, electric blues and pinks, cyberpunk lighting, high contrast glow',
+    purple: 'purple-dominant color palette, magenta and violet tones, modern and stylish mood',
+    monochrome: 'black and white color scheme, high contrast, dramatic lighting, timeless aesthetic',
+    ocean: 'cool blue and teal tones, aquatic color palette, fresh and clean atmosphere',
+    pastel: 'soft pastel colors, low saturation, gentle tones, calm and friendly aesthetic',
 
+}
  
 
 export const generateThumbnail = async (req:Request, res:Response) => {
