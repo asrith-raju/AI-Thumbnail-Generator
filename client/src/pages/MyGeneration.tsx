@@ -30,21 +30,36 @@ const MyGeneration = () => {
             toast.error(error?.response?.data?.message )
         }
         finally{
-            setLoading(false) 
+            setLoading(false)  
         }
     }
-
+ 
     const handleDownload = (image_url: string) => {
-        window.open(image_url, '_blank')
+        const link = document.createElement('a');
+         link.href = image_url.replace('/upload','/upload/fl_attachment')
+         document.body.appendChild(link);
+         link.click();
     }
 
     const handleDelete = async (id: string) => {
-        console.log(id)
+       try {
+        const confirm = window.confirm("Are you sure you want to delete this thumbnail?")
+        if(!confirm) return;
+        const {data} = await api.delete(`/api/thumbnail/delete/${id}`)
+        toast.success(data.message)
+        setThumbnails(thumbnails.filter(thumbnail=> thumbnail._id !== id))
+       } catch (error:any) {
+        console.log(error.message)
+        toast.error(error?.response?.data?.message )
+       }
     }
 
     useEffect(() => {
+        if(!isLoggedIn) {
         fetchThumbnails()
-    }, [])
+           
+        }
+    }, [isLoggedIn])
 
     return (
         <>
