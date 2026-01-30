@@ -8,7 +8,6 @@ import ColorSchemaSelector from "../components/ColorSchemaSelector"
 import PreviewPanel from "../components/PreviewPanel"
 import { useAuth } from "../context/AuthContext"
 import toast from "react-hot-toast"
-import { color } from "motion"
 import api from "../configs/api"
 
 const Generate = () => {

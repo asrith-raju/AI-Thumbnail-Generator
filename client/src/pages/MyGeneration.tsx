@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import SoftBackdrop from "../components/SoftBackdrop"
-import { dummyThumbnails, type IThumbnail } from "../assets/assets"
+import { type IThumbnail } from "../assets/assets"
 import { Link, useNavigate } from "react-router-dom"
 import { ArrowUpRightIcon, DownloadIcon, TrashIcon } from "lucide-react"
 import { useAuth } from "../context/AuthContext"
