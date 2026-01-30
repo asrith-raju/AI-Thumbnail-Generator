@@ -68,7 +68,16 @@ export const AuthProvider = ({children}:{children:React.ReactNode})=>{
     }
 
     const fetchUser = async () => {
-        
+        try {
+            const {data} = await api.get('/api/auth/verify');
+            if(data.user){
+                setUser(data.user as IUser);
+                setIsLoggedIn(true);   
+            }
+            
+        } catch (error) {
+            console.log(error);
+        }
     }
 
     useEffect(() => {
