@@ -19,9 +19,15 @@ declare module "express-session" {
 await connectDB();
 const app = express();
 
+app.set("trust proxy", 1);
+
 app.use(
     cors({
-        origin: ["http://localhost:5173", "http://localhost:3000", process.env.FRONTEND_URL as string],
+        origin: [
+            "http://localhost:5173",
+            "http://localhost:3000",
+            process.env.FRONTEND_URL as string,
+        ],
         credentials: true,
     })
 );
@@ -36,10 +42,10 @@ app.use(
             collectionName: "sessions",
         }),
         cookie: {
-            maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+            maxAge: 1000 * 60 * 60 * 24 * 7,
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+            secure: true,
+            sameSite: "none",
         },
     })
 );
