@@ -1,14 +1,17 @@
+// Import the configured Gemini client
 import gemini from "../configs/gemini.js";
 
+// Input structure for generating an image prompt
 interface PromptInput {
-    title: string;
-    style?: string;
-    aspect_ratio?: string;
-    color_scheme?: string;
-    user_prompt?: string;
-    text_overlay?: string;
+    title: string;              // Video title (must be preserved in the thumbnail)
+    style?: string;             // Thumbnail style (e.g., bold, graphic, minimal)
+    aspect_ratio?: string;      // Aspect ratio (e.g., 16:9)
+    color_scheme?: string;      // Color preference for the thumbnail
+    user_prompt?: string;       // Additional user instructions
+    text_overlay?: string;      // Text overlay preference
 }
 
+// Generates a refined image generation prompt using Gemini
 export const generateImagePrompt = async ({
     title,
     style,
@@ -17,10 +20,13 @@ export const generateImagePrompt = async ({
     user_prompt,
     text_overlay,
 }: PromptInput): Promise<string> => {
+
+    // Send prompt instructions to Gemini chat completion API
     const completion = await gemini.chat.completions.create({
-        model: "gemini-2.5-flash",
+        model: "gemini-2.5-flash", // Fast and cost-efficient Gemini model
         messages: [
             {
+                // System message defines AI behavior and rules
                 role: "system",
                 content:
                     `You are an expert YouTube thumbnail designer.
@@ -37,6 +43,7 @@ export const generateImagePrompt = async ({
                     `,
             },
             {
+                // User message provides dynamic thumbnail details
                 role: "user",
                 content: `
                     Title: ${title}
@@ -52,5 +59,6 @@ export const generateImagePrompt = async ({
         ],
     });
 
+    // Extract and return the final generated prompt
     return completion.choices[0].message.content!.trim();
 };
