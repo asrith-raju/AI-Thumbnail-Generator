@@ -10,6 +10,7 @@ import MyGeneration from "./pages/MyGeneration";
 import Login from "./components/Login";
 import { useEffect } from "react";
 import {Toaster} from "react-hot-toast"
+import NotFound from "./pages/NotFound";
 
 /**
  * App - Root component that defines the application layout and routing.
@@ -42,7 +43,10 @@ export default function App() {
                 <Route path="/my-generation" element={<MyGeneration />} />
                 <Route path="/preview" element={<YTPreview />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="*" element={<NotFound />} />
             </Routes>
+
+
             {/* Persistent footer */}
             <Footer />
         </>
